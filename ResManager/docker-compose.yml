@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  resmanager:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    external: true
+    name: app-net

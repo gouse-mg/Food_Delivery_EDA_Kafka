@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Restaurant Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #141414;
+      --card: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #e8c97e;
+      --accent-dim: #b89a50;
+      --text: #f0ece3;
+      --muted: #7a7570;
+      --error: #e07070;
+      --success: #70c88a;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 50%, rgba(232,201,126,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 80% 30%, rgba(232,201,126,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Grain overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 460px;
+      padding: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Brand */
+    .brand {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .brand-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .brand h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .brand h1 span {
+      color: var(--accent);
+    }
+
+    .brand p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 6px;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px 32px;
+      animation: fadeUp 0.6s ease 0.1s both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.5;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+      border: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.2s ease;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #0d0d0d;
+      font-weight: 600;
+    }
+
+    /* Forms */
+    .form { display: none; }
+    .form.active { display: block; }
+
+    .field {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 16px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(232,201,126,0.1);
+    }
+
+    input::placeholder { color: var(--muted); }
+
+    /* Submit button */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #0d0d0d;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      letter-spacing: 0.02em;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:hover {
+      background: #f0d48e;
+      box-shadow: 0 4px 20px rgba(232,201,126,0.25);
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-top-color: #0d0d0d;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .btn.loading .spinner { display: block; }
+    .btn.loading .btn-text { opacity: 0.7; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999;
+      white-space: nowrap;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { border-color: var(--error); }
+    .toast.success { border-color: var(--success); }
+    .toast .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .toast.error .dot { background: var(--error); }
+    .toast.success .dot { background: var(--success); }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="brand">
+      <span class="brand-icon">🍽️</span>
+      <h1>Table<span>OS</span></h1>
+      <p>Restaurant Management Portal</p>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('login')">Sign In</button>
+        <button class="tab" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="loginForm" class="form active">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="you@restaurant.com" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" />
+        </div>
+        <button class="btn" id="loginBtn" onclick="handleLogin()">
+          <div class="btn-inner">
+            <div class="spinner"></div>
+            <span class="btn-text">Sign In</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="registerForm" class="form">
+        <div class="field">
+          <label>Restaurant Name</label>
+          <input type="text" id="regName" placeholder="e.g. The Golden Fork" />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="you@restaurant.com" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="regPassword" placeholder="Min. 8 characters" />
+        </div>
+        <button class="btn" id="registerBtn" onclick="handleRegister()">
+          <div class="btn-inner">
+            <div class="spinner"></div>
+            <span class="btn-text">Create Account</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <div class="dot"></div>
+    <span id="toastMsg"></span>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8000';  // same origin; change to 'http://localhost:8000' if needed
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0) === (tab === 'login'));
+      });
+      document.getElementById('loginForm').classList.toggle('active', tab === 'login');
+      document.getElementById('registerForm').classList.toggle('active', tab === 'register');
+    }
+
+    function showToast(msg, type = 'error') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.className = `toast ${type}`;
+      void toast.offsetWidth;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = loading;
+      btn.classList.toggle('loading', loading);
+    }
+
+    async function handleRegister() {
+      const name     = document.getElementById('regName').value.trim();
+      const email    = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+
+      if (!name || !email || !password) {
+        showToast('Please fill in all fields.');
+        return;
+      }
+      if (password.length < 8) {
+        showToast('Password must be at least 8 characters.');
+        return;
+      }
+
+      setLoading('registerBtn', true);
+      try {
+        const res = await fetch(`${API}/res/create-restaurant`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Registration failed');
+
+        showToast('Account created! Signing you in…', 'success');
+
+        // Auto-login after register
+        setTimeout(() => loginWithCredentials(email, password), 1200);
+
+      } catch (err) {
+        showToast(err.message);
+        setLoading('registerBtn', false);
+      }
+    }
+
+    async function handleLogin() {
+      const email    = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      if (!email || !password) {
+        showToast('Please enter your email and password.');
+        return;
+      }
+
+      setLoading('loginBtn', true);
+      await loginWithCredentials(email, password);
+      setLoading('loginBtn', false);
+    }
+
+    async function loginWithCredentials(email, password) {
+      try {
+        const res = await fetch(`${API}/auth/res/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Login failed');
+
+        // Store token
+        localStorage.setItem('token', data.access_token);
+
+        showToast('Welcome back! Redirecting…', 'success');
+        setTimeout(() => {
+          window.location.href = '/static/frontend.html';
+        }, 1000);
+
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    // If already logged in, redirect straight to dashboard
+    if (localStorage.getItem('token')) {
+      window.location.href = '/static/frontend.html';
+    }
+
+    // Enter key support
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const loginActive = document.getElementById('loginForm').classList.contains('active');
+      if (loginActive) handleLogin();
+      else handleRegister();
+    });
+  </script>
+</body>
+</html>
