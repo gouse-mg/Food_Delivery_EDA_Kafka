@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Place Order</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #181818;
+    --border: #2a2a2a;
+    --accent: #f0c040;
+    --accent-dim: #f0c04022;
+    --text: #f0ede8;
+    --muted: #666;
+    --success: #4caf7d;
+    --error: #e05c5c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    width: 100%;
+    max-width: 520px;
+    padding: 2.5rem;
+    position: relative;
+    animation: slideUp 0.4s ease both;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 40px; height: 40px;
+    border-top: 2px solid var(--accent);
+    border-left: 2px solid var(--accent);
+    border-radius: 2px 0 0 0;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .label-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+  }
+
+  /* Dish grid */
+  .dish-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .dish-grid::-webkit-scrollbar { width: 4px; }
+  .dish-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .dish-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 0.65rem 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    position: relative;
+    user-select: none;
+  }
+  .dish-card:hover { border-color: var(--muted); }
+  .dish-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .dish-card input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+
+  .dish-name { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+  .dish-meta { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); }
+  .dish-price { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--accent); }
+
+  .check-mark {
+    position: absolute;
+    top: 0.5rem; right: 0.5rem;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .check-mark svg { width: 10px; height: 10px; }
+  .dish-card.selected .check-mark { display: flex; }
+
+  /* Skeleton loader */
+  .skeleton { background: var(--border); border-radius: 2px; animation: pulse 1.2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:.8} }
+  .sk-name { height: 12px; width: 70%; margin-bottom: 6px; }
+  .sk-meta { height: 10px; width: 50%; }
+
+  .err-msg {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--error);
+    padding: 0.75rem;
+    border: 1px solid var(--error);
+    border-radius: 2px;
+    margin-bottom: 0.75rem;
+  }
+
+  .selection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin-bottom: 1rem;
+  }
+  .sel-count { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+  .sel-count span { color: var(--accent); }
+  .btn-clear {
+    background: transparent;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0;
+    transition: color 0.15s;
+  }
+  .btn-clear:hover { color: var(--error); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+
+  .total-bar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin-bottom: 1rem;
+  }
+  .total-label { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .total-amount { font-family: 'DM Mono', monospace; font-size: 1.2rem; font-weight: 500; color: var(--accent); }
+  .total-amount .currency { font-size: 0.75rem; margin-right: 2px; opacity: 0.7; }
+  .total-bar.hidden { display: none; }
+
+  .btn-place {
+    width: 100%;
+    background: var(--accent);
+    color: #0e0e0e;
+    border: none;
+    border-radius: 2px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-place:hover:not(:disabled) { opacity: 0.88; }
+  .btn-place:active:not(:disabled) { transform: scale(0.985); }
+  .btn-place:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-track {
+    width: 100%;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.7rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-track:hover { background: var(--accent-dim); }
+
+  #map-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: slideUp 0.2s ease both;
+  }
+  #map-panel {
+    width: min(860px, 92vw);
+    height: 75vh;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #map-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  /* Log */
+  #log { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; display: none; }
+  #log.visible { display: block; }
+  .log-header { background: var(--bg); padding: 0.5rem 0.75rem; font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  #log-list { list-style: none; max-height: 160px; overflow-y: auto; padding: 0.5rem 0; }
+  #log-list::-webkit-scrollbar { width: 4px; }
+  #log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  #log-list li { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); padding: 0.25rem 0.75rem; display: flex; gap: 0.6rem; }
+  #log-list li .ts { color: var(--accent); flex-shrink: 0; }
+  #log-list li.sent { color: var(--success); }
+  #log-list li.failed { color: var(--error); }
+
+  /* Toast */
+  #toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--surface); border: 1px solid var(--border); border-radius: 2px; padding: 0.75rem 1.25rem; font-family: 'DM Mono', monospace; font-size: 0.8rem; display: flex; align-items: center; gap: 0.6rem; opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  #toast.success .dot { background: var(--success); }
+  #toast.error   .dot { background: var(--error); }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="label-tag">— Order System</div>
+  <h1>Place<br>an Order</h1>
+
+  <div class="section-label">Select dishes</div>
+  <div id="dish-grid" class="dish-grid"></div>
+
+  <div class="selection-bar">
+    <span class="sel-count"><span id="sel-num">0</span> selected</span>
+    <button class="btn-clear" onclick="clearSelection()">Clear all</button>
+  </div>
+
+  <hr class="divider">
+  <div class="total-bar hidden" id="total-bar">
+    <span class="total-label">Total</span>
+    <span class="total-amount"><span class="currency">&#x20B9;</span><span id="total-val">0</span></span>
+  </div>
+  <button class="btn-place" id="placeBtn" onclick="placeOrder()" disabled>Place Order</button>
+
+  <div id="log">
+    <div class="log-header">Order Results</div>
+    <ul id="log-list"></ul>
+  </div>
+</div>
+
+<div id="toast"><span class="dot"></span><span id="toast-msg"></span></div>
+
+<script>
+  let dishes = [];
+  let selected = new Set(); // Set of "dishId:resId" strings
+
+  // ── Skeleton loader ────────────────────────────────────────────────────────
+  function renderSkeletons() {
+    const g = document.getElementById('dish-grid');
+    g.innerHTML = Array(6).fill(0).map(() => `
+      <div class="dish-card">
+        <div class="skeleton sk-name"></div>
+        <div class="skeleton sk-meta"></div>
+      </div>`).join('');
+  }
+
+  // ── Render dish cards ──────────────────────────────────────────────────────
+  function renderDishes() {
+    const g = document.getElementById('dish-grid');
+    if (!dishes.length) {
+      g.innerHTML = `<div class="err-msg" style="grid-column:1/-1">No dishes returned from server.</div>`;
+      return;
+    }
+    g.innerHTML = dishes.map(d => `
+      <div class="dish-card" id="dc-${d.id}"
+           onclick="toggleDish(${d.id}, ${d.restaurant_id})"
+           role="checkbox" aria-checked="false" tabindex="0"
+           onkeydown="if(event.key===' '||event.key==='Enter'){toggleDish(${d.id},${d.restaurant_id});event.preventDefault()}">
+        <input type="checkbox" id="chk-${d.id}" aria-hidden="true">
+        <div class="check-mark">
+          <svg viewBox="0 0 10 10" fill="none">
+            <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#0e0e0e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="dish-name">${escHtml(d.name)}</div>
+        <div class="dish-meta">Res #${d.restaurant_id}</div>
+        ${d.price != null ? `<div class="dish-price">&#x20B9;${d.price}</div>` : ''}
+      </div>`).join('');
+  }
+
+  // ── Toggle selection ───────────────────────────────────────────────────────
+  function toggleDish(dishId, resId) {
+    const key = `${dishId}:${resId}`;
+    const card = document.getElementById(`dc-${dishId}`);
+    if (selected.has(key)) {
+      selected.delete(key);
+      card.classList.remove('selected');
+      card.setAttribute('aria-checked', 'false');
+    } else {
+      selected.add(key);
+      card.classList.add('selected');
+      card.setAttribute('aria-checked', 'true');
+    }
+    updateUI();
+  }
+
+  function clearSelection() {
+    selected.forEach(key => {
+      const dishId = key.split(':')[0];
+      const card = document.getElementById(`dc-${dishId}`);
+      if (card) { card.classList.remove('selected'); card.setAttribute('aria-checked', 'false'); }
+    });
+    selected.clear();
+    updateUI();
+  }
+
+  function updateUI() {
+    document.getElementById('sel-num').textContent = selected.size;
+    document.getElementById('placeBtn').disabled = selected.size === 0;
+
+    const totalBar = document.getElementById('total-bar');
+    if (selected.size === 0) {
+      totalBar.classList.add('hidden');
+      return;
+    }
+    totalBar.classList.remove('hidden');
+
+    // Sum prices; if any dish has no price, show "—"
+    let total = 0;
+    let hasMissing = false;
+    selected.forEach(key => {
+      const dishId = Number(key.split(':')[0]);
+      const dish = dishes.find(d => d.id === dishId);
+      if (dish && dish.price != null) total += Number(dish.price);
+      else hasMissing = true;
+    });
+
+    const valEl = document.getElementById('total-val');
+    const curEl = document.querySelector('.total-amount .currency');
+    if (hasMissing && total === 0) {
+      valEl.textContent = '—';
+      curEl.style.display = 'none';
+    } else {
+      valEl.textContent = total.toLocaleString('en-IN');
+      curEl.style.display = '';
+      if (hasMissing) valEl.textContent += '+';
+    }
+  }
+
+  // ── Build cart — same structure as original: [[dish_id, res_id], ...] ──────
+  function buildCart() {
+    return [...selected].map(key => key.split(':').map(Number));
+  }
+
+  // ── Logging & Toast ────────────────────────────────────────────────────────
+  function addLog(msg, type = '') {
+    const log = document.getElementById('log');
+    const list = document.getElementById('log-list');
+    log.classList.add('visible');
+    const li = document.createElement('li');
+    if (type) li.classList.add(type);
+    const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    li.innerHTML = `<span class="ts">${ts}</span><span>${msg}</span>`;
+    list.appendChild(li);
+    list.scrollTop = list.scrollHeight;
+  }
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.className = `show ${type}`;
+    document.getElementById('toast-msg').textContent = msg;
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => t.className = '', 3000);
+  }
+
+  // ── Fetch dishes ───────────────────────────────────────────────────────────
+  async function loadDishes() {
+    renderSkeletons();
+    try {
+      const resp = await fetch('http://localhost:8000/api/ResManager/dishes/all-dishes');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      // Accept: array directly, or { dishes: [] }, or { data: [] }
+      dishes = Array.isArray(data) ? data : (data.dishes || data.data || []);
+      renderDishes();
+    } catch (err) {
+      document.getElementById('dish-grid').innerHTML =
+        `<div class="err-msg" style="grid-column:1/-1">Could not load dishes: ${escHtml(err.message)}</div>`;
+    }
+  }
+// ── Track Order buttons ────────────────────────────────────────────────────
+let mapOverlay = null;
+
+function RedirectToTrackOrder(oid) {
+  // Add track button if it doesn't exist yet for this oid
+  const btnId = `track-btn-${oid}`;
+  if (!document.getElementById(btnId)) {
+    const log = document.getElementById('log');
+    let trackArea = document.getElementById('track-buttons');
+    if (!trackArea) {
+      trackArea = document.createElement('div');
+      trackArea.id = 'track-buttons';
+      trackArea.style.cssText = 'display:flex;flex-direction:column;gap:0.5rem;margin-top:0.75rem;';
+      log.after(trackArea);
+    }
+    const btn = document.createElement('button');
+    btn.id = btnId;
+    btn.className = 'btn-track';
+    btn.textContent = `Track Order #${oid}`;
+    btn.onclick = () => openMapOverlay(oid);
+    trackArea.appendChild(btn);
+  }
+}
+
+function openMapOverlay(oid) {
+  // Remove existing overlay if any
+  if (mapOverlay) mapOverlay.remove();
+
+  mapOverlay = document.createElement('div');
+  mapOverlay.id = 'map-overlay';
+  mapOverlay.innerHTML = `
+    <div id="map-panel">
+      <div id="map-panel-header">
+        <span style="font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Order #${oid} — Live Route</span>
+        <button onclick="closeMapOverlay()" style="background:transparent;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+      </div>
+      <iframe src="http://localhost:8003/map/${oid}" style="width:100%;height:100%;border:none;flex:1;"></iframe>
+    </div>`;
+  document.body.appendChild(mapOverlay);
+}
+
+function closeMapOverlay() {
+  if (mapOverlay) { mapOverlay.remove(); mapOverlay = null; }
+}
+function connect() {
+    
+    console.log("COnnecting!!")
+    socket = new WebSocket(`/ws`);
+
+    socket.onopen = () => console.log(`Connected!!`);
+
+    socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log(data.flag);
+        addLog(`✓ Order #${data.oid}: ${data.flag}`);
+        RedirectToTrackOrder(data.oid); 
+    };
+
+    socket.onerror = (err) => console.error("WebSocket error:", err);
+
+    socket.onclose = (event) => {
+        console.log(`Disconnected (code: ${event.code})`);
+        if (event.code === 1008) {
+            alert("Session expired or unauthorized. Please log in again.");
+            localStorage.removeItem("token");
+            window.location.href = "/";
+        }
+    };
+}
+
+  // ── Place order ────────────────────────────────────────────────────────────
+  async function placeOrder() {
+    const cart = buildCart();
+    if (!cart.length) return;
+
+    const btn = document.getElementById('placeBtn');
+    btn.disabled = true;
+    btn.textContent = 'Placing…';
+    addLog(`Sending cart: ${JSON.stringify(cart)}`);
+
+    try {
+      const resp = await fetch('/Order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart })
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        
+        showToast(`Order #${data.status}`);
+      } else {
+        addLog(`Error: ${data.detail || resp.statusText}`, 'failed');
+        showToast(data.detail || 'Request failed.', 'error');
+      }
+    } catch (err) {
+      addLog(`Network error: ${err.message}`, 'failed');
+      showToast('Could not reach server.', 'error');
+    } finally {
+      btn.disabled = selected.size === 0;
+      btn.textContent = 'Place Order';
+    }
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  connect();
+  loadDishes();
+
+</script>
+</body>
+</html>
