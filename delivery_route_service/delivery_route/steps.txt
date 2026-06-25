@@ -1,0 +1,87 @@
+# Delivery Route Service — Execution Steps
+
+## Prerequisites
+- Docker + Docker Compose installed
+- The shared `app-net` Docker network already exists (created by your main stack)
+- Kafka reachable at `kafka:9092` on `app-net`
+- A valid ORS API key from https://openrouteservice.org/dev/#/home → TOKENS
+
+---
+
+## 1. Set your ORS API key
+Open `main.py` and replace the placeholder:
+```python
+ORS_API_KEY = "YOUR_ORS_API_KEY_HERE"
+```
+
+---
+
+## 2. Ensure the shared network exists
+If it doesn't exist yet, create it once:
+```bash
+docker network create app-net
+```
+
+---
+
+## 3. Build and start the service
+```bash
+docker compose up --build -d
+```
+Service will be available at http://localhost:8002
+
+---
+
+## 4. Check logs
+```bash
+docker compose logs -f
+```
+You should see:
+- "Kafka producer started"
+- "Consumer ready, waiting for Order-placed messages..."
+
+---
+
+## 5. API Endpoints
+
+### Health check
+GET http://localhost:8002/health
+
+### Get routes for an order (once Order-placed event has been consumed)
+GET http://localhost:8002/getLocation/{oid}
+
+Returns two GeoJSON routes:
+- route1_del_to_res   — delivery person → restaurant
+- route2_res_to_order — restaurant → customer
+
+### Check raw stored order_info
+GET http://localhost:8002/status/{oid}
+
+---
+
+## 6. How the data flows
+
+1. Another service publishes to Kafka topic `Order-placed`:
+   ```json
+   {
+     "order_id": "abc123",
+     "cart": [...],
+     "flag": "...",
+     "order_info": {
+       "res-available":  {"res_id": 1, "location": [12.9716, 77.5946]},
+       "del location":   [12.9800, 77.6000],
+       "order-location": [12.9600, 77.5800]
+     }
+   }
+   ```
+
+2. This service consumes the event → stores `order_info` in `order_status["abc123"]`
+
+3. Client hits GET /getLocation/abc123 → fetches both ORS routes in parallel → returns GeoJSON
+
+---
+
+## 7. Stop the service
+```bash
+docker compose down
+```
