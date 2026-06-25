@@ -1,0 +1,29 @@
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant Order as Order Service
+    participant Kafka
+    participant Res as Restaurant Mgr
+    participant Route as Route Service
+
+    Customer->>Order: POST /Order
+    Order->>Res: GET restaurant lat/long
+    Order->>Kafka: order-created
+    Kafka->>Res: order-created
+
+    Res->>Res: WS push to restaurant + wait
+    Res->>Kafka: res-available
+    Kafka->>Order: res-available
+
+    Order->>Kafka: Order-placed
+    Order->>Customer: WS status update
+
+    Kafka->>Res: Order-placed
+    Res->>Res: WS confirm to restaurant
+
+    Kafka->>Route: Order-placed
+    Route->>Route: cache order_info
+
+    Customer->>Route: GET /map/{oid}
+    Route->>Route: fetch ORS routes
+    Route-->>Customer: map with routes

@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'background': '#ffffff',
+  'primaryColor': '#ffffff',
+  'primaryTextColor': '#000000',
+  'primaryBorderColor': '#000000',
+  'lineColor': '#000000',
+  'secondaryColor': '#ffffff',
+  'tertiaryColor': '#ffffff',
+  'edgeLabelBackground': '#ffffff'
+}}}%%
+flowchart LR
+    Cust([Customer])
+    Rest([Restaurant App])
+
+    OrderSvc[Order Service<br/>:8001]
+    ResMgr[Restaurant Manager<br/>:8000]
+    RouteSvc[Route Service<br/>:8003]
+
+    T1((order-created))
+    T2((res-available))
+    T3((Order-placed))
+
+    ResDB[(Postgres)]
+    OrderMem[(In-memory)]
+    RouteMem[(In-memory)]
+    ORS([ORS API])
+
+    Cust -->|POST /Order| OrderSvc
+    OrderSvc -->|lookup lat/long| ResMgr
+    OrderSvc --> T1 --> ResMgr
+
+    ResMgr <-->|WS accept/confirm| Rest
+    ResMgr --> T2 --> OrderSvc
+
+    OrderSvc --> T3
+    T3 --> ResMgr
+    T3 --> RouteSvc
+
+    RouteSvc -->|routes| ORS
+    OrderSvc -.->|WS status| Cust
+
+    ResMgr --- ResDB
+    OrderSvc --- OrderMem
+    RouteSvc --- RouteMem
